@@ -1,15 +1,14 @@
 const Swimmer = require('../models/Swimmer');
-const path = require('path');
-const fs = require('fs');
+const { deleteFromCloudinary } = require('../config/cloudinary');
 
 const asyncHandler = (fn) => (req, res, next) =>
     Promise.resolve(fn(req, res, next)).catch(next);
 
-// @desc    Create new swimmer (with optional photo)
-// @route   POST /api/swimmers
 exports.createSwimmer = asyncHandler(async (req, res) => {
     const { firstName, lastName, birthDate, phoneNumber, parentPhoneNumber, group, status, endSub } = req.body;
-    const photo_url = req.file ? `/uploads/${req.file.filename}` : '/uploads/default-avatar.png';
+    // Cloudinary returns the URL in req.file.path
+    const photo_url = req.file ? req.file.path : null;
+
     const newSwimmer = await Swimmer.create({
         firstName, lastName,
         birthDate: birthDate || null,
@@ -23,38 +22,30 @@ exports.createSwimmer = asyncHandler(async (req, res) => {
     res.status(201).json(newSwimmer);
 });
 
-// @desc    Get all swimmers
-// @route   GET /api/swimmers
 exports.getSwimmers = asyncHandler(async (req, res) => {
     const swimmers = await Swimmer.findAll({ order: [['createdAt', 'DESC']] });
     res.json(swimmers);
 });
 
-// @desc    Update swimmer (with optional new photo)
-// @route   PUT /api/swimmers/:id
 exports.updateSwimmer = asyncHandler(async (req, res) => {
     const swimmer = await Swimmer.findByPk(req.params.id);
     if (!swimmer) return res.status(404).json({ message: 'Nageur non trouvé' });
+
     if (req.file) {
-        if (swimmer.photo_url && !swimmer.photo_url.includes('default-avatar')) {
-            const oldPath = path.join(__dirname, '..', swimmer.photo_url);
-            if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-        }
-        req.body.photo_url = `/uploads/${req.file.filename}`;
+        // Delete old photo from Cloudinary
+        if (swimmer.photo_url) await deleteFromCloudinary(swimmer.photo_url);
+        req.body.photo_url = req.file.path;
     }
+
     await swimmer.update(req.body);
     res.json(swimmer);
 });
 
-// @desc    Delete swimmer (also deletes photo)
-// @route   DELETE /api/swimmers/:id
 exports.deleteSwimmer = asyncHandler(async (req, res) => {
     const swimmer = await Swimmer.findByPk(req.params.id);
     if (!swimmer) return res.status(404).json({ message: 'Nageur non trouvé' });
-    if (swimmer.photo_url && !swimmer.photo_url.includes('default-avatar')) {
-        const filePath = path.join(__dirname, '..', swimmer.photo_url);
-        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    }
+
+    if (swimmer.photo_url) await deleteFromCloudinary(swimmer.photo_url);
     await swimmer.destroy();
     res.json({ message: 'Nageur supprimé avec succès' });
 });

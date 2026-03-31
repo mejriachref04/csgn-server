@@ -1,82 +1,71 @@
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const { protect } = require('../middlewares/authMiddleware');
+const { createUpload, deleteFromCloudinary, cloudinary } = require('../config/cloudinary');
+const { sequelize } = require('../config/db');
+const { QueryTypes } = require('sequelize');
 
-// Use shared mysql2 pool via env variables (not hardcoded)
-const mysql = require('mysql2/promise');
-const db = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'marsa_natation'
-});
+const upload = createUpload('gallery');
 
-// Multer storage config
-const storage = multer.diskStorage({
-  destination: './uploads/',
-  filename: (req, file, cb) => {
-    cb(null, 'img-' + Date.now() + path.extname(file.originalname));
-  }
-});
-const upload = multer({ storage });
-
-// GET all images (public - used by Home page)
+// GET all images (public)
 router.get('/', async (req, res) => {
-  try {
-    const [images] = await db.query('SELECT * FROM gallery ORDER BY createdAt DESC');
-    res.json(images);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Erreur serveur.' });
-  }
+    try {
+        const images = await sequelize.query(
+            'SELECT * FROM gallery ORDER BY createdAt DESC',
+            { type: QueryTypes.SELECT }
+        );
+        res.json(images);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Erreur serveur.' });
+    }
 });
 
-// POST new image (protected)
+// POST new image (protected) — Cloudinary upload
 router.post('/', protect, upload.single('image'), async (req, res) => {
-  try {
-    const { title } = req.body;
-    if (!req.file) {
-      return res.status(400).json({ message: 'Aucun fichier fourni.' });
+    try {
+        const { title } = req.body;
+        if (!req.file) return res.status(400).json({ message: 'Aucun fichier fourni.' });
+
+        const url = req.file.path; // Cloudinary URL
+        const publicId = req.file.filename; // Cloudinary public_id
+
+        await sequelize.query(
+            'INSERT INTO gallery (title, url, publicId) VALUES (?, ?, ?)',
+            { replacements: [title || '', url, publicId], type: QueryTypes.INSERT }
+        );
+
+        res.json({ title, url });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Erreur lors de l'upload." });
     }
-    const url = `/uploads/${req.file.filename}`;
-    await db.query('INSERT INTO gallery (title, url) VALUES (?, ?)', [title, url]);
-    res.json({ title, url });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Erreur lors de l'upload." });
-  }
 });
 
-// DELETE image by id (protected)
+// DELETE image (protected)
 router.delete('/:id', protect, async (req, res) => {
-  try {
-    const { id } = req.params;
+    try {
+        const [rows] = await sequelize.query(
+            'SELECT * FROM gallery WHERE id = ?',
+            { replacements: [req.params.id], type: QueryTypes.SELECT }
+        );
 
-    // Get the image record first to delete the file from disk
-    const [rows] = await db.query('SELECT * FROM gallery WHERE id = ?', [id]);
-    if (rows.length === 0) {
-      return res.status(404).json({ message: 'Image non trouvée.' });
+        if (!rows || rows.length === 0) return res.status(404).json({ message: 'Image non trouvée.' });
+
+        const image = rows[0] || rows;
+
+        // Delete from Cloudinary
+        if (image.url) await deleteFromCloudinary(image.url);
+
+        await sequelize.query('DELETE FROM gallery WHERE id = ?', {
+            replacements: [req.params.id], type: QueryTypes.DELETE
+        });
+
+        res.json({ message: 'Image supprimée avec succès.' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Erreur lors de la suppression.' });
     }
-
-    const imageUrl = rows[0].url; // e.g. /uploads/img-123.png
-    const filePath = path.join(__dirname, '..', imageUrl);
-
-    // Delete from DB
-    await db.query('DELETE FROM gallery WHERE id = ?', [id]);
-
-    // Delete file from disk (ignore error if file doesn't exist)
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
-
-    res.json({ message: 'Image supprimée avec succès.' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Erreur lors de la suppression.' });
-  }
 });
 
 module.exports = router;
