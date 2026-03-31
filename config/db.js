@@ -37,7 +37,7 @@ const connectDB = async () => {
         // Production: force:false only — never alter in prod (use migrations)
         // Development: alter:true to auto-add missing columns
         if (isProduction) {
-            await sequelize.sync({ force: false });
+            await sequelize.sync({ force: process.env.DB_FORCE_SYNC === 'true' });
         } else {
             await sequelize.sync({ alter: true });
         }
