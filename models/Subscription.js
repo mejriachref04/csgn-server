@@ -31,7 +31,7 @@ const Subscription = sequelize.define('Subscription', {
 });
 
 // Linki l'abonnement bél nageur (Relation One-To-Many)
-Subscription.belongsTo(Swimmer, { onDelete: 'CASCADE' });
-Swimmer.hasMany(Subscription);
+Subscription.belongsTo(Swimmer, { onDelete: 'CASCADE', foreignKeyConstraint: false });
+Swimmer.hasMany(Subscription, { foreignKeyConstraint: false });
 
 module.exports = Subscription;
