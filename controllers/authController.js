@@ -1,7 +1,8 @@
 const Admin = require('../models/Admin');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { deleteFromCloudinary } = require('../config/cloudinary');
+let deleteFromCloudinary = async () => {};
+try { deleteFromCloudinary = require('../config/cloudinary').deleteFromCloudinary; } catch(e) { console.warn('Cloudinary not configured'); }
 
 exports.login = async (req, res) => {
     try {

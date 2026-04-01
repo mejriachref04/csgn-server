@@ -1,5 +1,6 @@
 const Swimmer = require('../models/Swimmer');
-const { deleteFromCloudinary } = require('../config/cloudinary');
+let deleteFromCloudinary = async () => {};
+try { deleteFromCloudinary = require('../config/cloudinary').deleteFromCloudinary; } catch(e) { console.warn('Cloudinary not configured'); }
 
 const asyncHandler = (fn) => (req, res, next) =>
     Promise.resolve(fn(req, res, next)).catch(next);
