@@ -28,11 +28,9 @@ router.post('/', protect, upload.single('image'), async (req, res) => {
         if (!req.file) return res.status(400).json({ message: 'Aucun fichier fourni.' });
 
         const url = req.file.path; // Cloudinary URL
-        const publicId = req.file.filename; // Cloudinary public_id
-
         await sequelize.query(
-            'INSERT INTO gallery (title, url, publicId) VALUES (?, ?, ?)',
-            { replacements: [title || '', url, publicId], type: QueryTypes.INSERT }
+            'INSERT INTO gallery (title, url) VALUES (?, ?)',
+            { replacements: [title || '', url], type: QueryTypes.INSERT }
         );
 
         res.json({ title, url });
