@@ -14,7 +14,7 @@ const Planning = sequelize.define('Planning', {
     coachId: { type: DataTypes.INTEGER, allowNull: true }
 }, { timestamps: true, tableName: 'planning', freezeTableName: true });
 
-Planning.belongsTo(Admin, { foreignKey: 'coachId', as: 'coach', onDelete: 'SET NULL' });
-Admin.hasMany(Planning, { foreignKey: 'coachId', as: 'sessions' });
+Planning.belongsTo(Admin, { foreignKey: 'coachId', as: 'coach', constraints: false });
+Admin.hasMany(Planning, { foreignKey: 'coachId', as: 'sessions', constraints: false });
 
 module.exports = Planning;

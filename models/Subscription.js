@@ -30,8 +30,8 @@ const Subscription = sequelize.define('Subscription', {
     freezeTableName: true
 });
 
-// Linki l'abonnement bél nageur (Relation One-To-Many)
-Subscription.belongsTo(Swimmer, { onDelete: 'CASCADE', foreignKeyConstraint: false });
-Swimmer.hasMany(Subscription, { foreignKeyConstraint: false });
+// Associations defined without foreign key constraints for production compatibility
+Subscription.belongsTo(Swimmer, { foreignKey: 'SwimmerId', constraints: false });
+Swimmer.hasMany(Subscription, { foreignKey: 'SwimmerId', constraints: false });
 
 module.exports = Subscription;
