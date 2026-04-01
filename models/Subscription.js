@@ -25,7 +25,9 @@ const Subscription = sequelize.define('Subscription', {
         defaultValue: 'active'
     }
 }, {
-    timestamps: true
+    timestamps: true,
+    tableName: 'subscriptions',
+    freezeTableName: true
 });
 
 // Linki l'abonnement bél nageur (Relation One-To-Many)

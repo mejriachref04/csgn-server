@@ -20,6 +20,6 @@ const Swimmer = sequelize.define('Swimmer', {
         allowNull: true,
         defaultValue: '/uploads/default-avatar.png'
     }
-}, { timestamps: true });
+}, { timestamps: true, tableName: 'swimmers', freezeTableName: true });
 
 module.exports = Swimmer;

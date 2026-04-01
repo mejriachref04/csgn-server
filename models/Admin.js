@@ -14,6 +14,6 @@ const Admin = sequelize.define('Admin', {
     specialty: { type: DataTypes.STRING, allowNull: true },   // e.g. "Nage avec palmes"
     phoneNumber: { type: DataTypes.STRING, allowNull: true },
     photo_url: { type: DataTypes.STRING, allowNull: true }
-}, { timestamps: true });
+}, { timestamps: true, tableName: 'admins', freezeTableName: true });
 
 module.exports = Admin;

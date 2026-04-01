@@ -12,7 +12,7 @@ const Planning = sequelize.define('Planning', {
     location: { type: DataTypes.STRING, defaultValue: 'Piscine principale' },
     group: { type: DataTypes.STRING, allowNull: false },
     coachId: { type: DataTypes.INTEGER, allowNull: true }
-}, { timestamps: true });
+}, { timestamps: true, tableName: 'planning', freezeTableName: true });
 
 Planning.belongsTo(Admin, { foreignKey: 'coachId', as: 'coach', onDelete: 'SET NULL' });
 Admin.hasMany(Planning, { foreignKey: 'coachId', as: 'sessions' });
